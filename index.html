@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>25th Anniversary Frame</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #000;
+        }
+        
+        .camera-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+        
+        #camera-feed {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 1;
+        }
+        
+        .overlay-frame {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            pointer-events: none;
+            z-index: 2;
+        }
+        
+        .overlay-image {
+            max-width: 100%;
+            max-height: 100%;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+        }
+    </style>
+</head>
+<body>
+    <div class="camera-container">
+        <video id="camera-feed" playsinline autoplay></video>
+        <div class="overlay-frame">
+            <img src="image/qr-removebg-preview.png" class="overlay-image" alt="25th Anniversary Frame">
+        </div>
+    </div>
+
+    <script>
+        const video = document.getElementById('camera-feed');
+        
+        async function startCamera() {
+            try {
+                const constraints = {
+                    video: {
+                        facingMode: 'user', // Front camera
+                        width: { ideal: window.screen.width },
+                        height: { ideal: window.screen.height }
+                    }
+                };
+                
+                const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                video.srcObject = stream;
+                
+            } catch (err) {
+                console.error('Camera error:', err);
+                alert('Please enable camera permissions to use this feature.');
+            }
+        }
+        
+        // Start camera when page loads
+        if (navigator.mediaDevices) {
+            window.addEventListener('DOMContentLoaded', startCamera);
+        } else {
+            alert('Camera access is not supported in your browser');
+        }
+        
+        // Adjust overlay on resize
+        function adjustOverlay() {
+            const overlay = document.querySelector('.overlay-image');
+            const container = document.querySelector('.camera-container');
+            
+            // Calculate the scale factor to fit the image within the screen
+            const scale = Math.min(
+                container.clientWidth / overlay.naturalWidth,
+                container.clientHeight / overlay.naturalHeight
+            );
+            
+            // Apply the scale while maintaining aspect ratio
+            overlay.style.transform = `scale(${scale})`;
+        }
+        
+        // Wait for image to load before adjusting
+        document.querySelector('.overlay-image').onload = function() {
+            adjustOverlay();
+            window.addEventListener('resize', adjustOverlay);
+        };
+    </script>
+</body>
+</html>
