@@ -54,6 +54,107 @@
             height: auto;
             object-fit: contain;
         }
+
+        .frame-container {
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            position: absolute;
+            width: 100%;
+            height: 30%;
+            bottom: 10%;
+            z-index: 3;
+        }
+
+        .frame {
+            position: relative;
+            width: 30%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        .frame:active {
+            cursor: grabbing;
+        }
+
+        .camera-button {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #fff;
+            color: #000;
+            border: none;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 4;
+        }
+
+        .filter-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 5px;
+        }
+
+        .filters-bar {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+            z-index: 10;
+        }
+        .filter-circle {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            overflow: hidden;
+            border: 3px solid #fff;
+            box-shadow: 0 0 8px rgba(0,0,0,0.3);
+            cursor: pointer;
+            transition: border-color 0.2s;
+            background: #222;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .filter-circle.active {
+            border-color: #ffd700;
+        }
+        .filter-circle img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .overlay-frame img {
+            display: none;
+        }
+        .overlay-frame img.active {
+            display: block;
+        }
+        .overlay-frame img {
+            transition: opacity 0.4s, transform 0.4s;
+            opacity: 0;
+            transform: scale(0.95);
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+        }
+        .overlay-frame img.active {
+            opacity: 1;
+            transform: scale(1);
+            z-index: 2;
+        }
     </style>
 </head>
 <body>
@@ -61,6 +162,28 @@
         <video id="camera-feed" playsinline autoplay></video>
         <div class="overlay-frame">
             <img src="iPhone_14___15_Pro_Max_-_2-removebg-preview.png" class="overlay-image" alt="25th Anniversary Frame">
+        </div>
+        <div class="frame-container">
+            <div class="frame"><img src="iPhone_14___15_Pro_Max_-_2-removebg-preview.png" class="filter-image" alt="Filter 1"></div>
+            <div class="frame"><img src="iPhone_14___15_Pro_Max_-_2-removebg-preview.png" class="filter-image" alt="Filter 2"></div>
+            <div class="frame"><img src="iPhone_14___15_Pro_Max_-_2-removebg-preview.png" class="filter-image" alt="Filter 3"></div>
+        </div>
+        <button class="camera-button" id="capture-button">📸</button>
+        <div class="filters-bar">
+            <div class="filter-circle active" data-filter="filter1">
+                <img src="iPhone_14___15_Pro_Max_-_2-removebg-preview.png" alt="Filter 1">
+            </div>
+            <div class="filter-circle" data-filter="filter2">
+                <img src="iPhone_14___15_Pro_Max_-_2-removebg-preview.png" alt="Filter 2">
+            </div>
+            <div class="filter-circle" data-filter="filter3">
+                <img src="iPhone_14___15_Pro_Max_-_2-removebg-preview.png" alt="Filter 3">
+            </div>
+        </div>
+        <div class="overlay-frame">
+            <img src="iPhone_14___15_Pro_Max_-_2-removebg-preview.png" class="active" id="overlay-filter1" alt="Filter 1">
+            <img src="iPhone_14___15_Pro_Max_-_2-removebg-preview.png" id="overlay-filter2" alt="Filter 2">
+            <img src="iPhone_14___15_Pro_Max_-_2-removebg-preview.png" id="overlay-filter3" alt="Filter 3">
         </div>
     </div>
 
@@ -113,6 +236,82 @@
             adjustOverlay();
             window.addEventListener('resize', adjustOverlay);
         };
+
+        const captureButton = document.getElementById('capture-button');
+
+        captureButton.addEventListener('click', async () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const context = canvas.getContext('2d');
+
+            // Draw the video frame to the canvas
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            // Save the image
+            const link = document.createElement('a');
+            link.download = 'ownam.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        });
+
+        const frameContainer = document.querySelector('.frame-container');
+        const frames = document.querySelectorAll('.frame');
+
+        frames.forEach(frame => {
+            frame.addEventListener('click', () => {
+                // Move clicked frame to the end of the container
+                frameContainer.appendChild(frame);
+            });
+        });
+
+        frames.forEach(frame => {
+            frame.addEventListener('mousedown', (event) => {
+                const rect = frame.getBoundingClientRect();
+                const offsetX = event.clientX - rect.left;
+                const offsetY = event.clientY - rect.top;
+
+                const onMouseMove = (moveEvent) => {
+                    frame.style.left = `${moveEvent.clientX - offsetX}px`;
+                    frame.style.top = `${moveEvent.clientY - offsetY}px`;
+                };
+
+                const onMouseUp = () => {
+                    document.removeEventListener('mousemove', onMouseMove);
+                    document.removeEventListener('mouseup', onMouseUp);
+                };
+
+                document.addEventListener('mousemove', onMouseMove);
+                document.addEventListener('mouseup', onMouseUp);
+            });
+
+            // Ensure frames are positioned absolutely for dragging
+            frame.style.position = 'absolute';
+        });
+
+        // Filter selection logic
+        const filterCircles = document.querySelectorAll('.filter-circle');
+        const overlayImages = document.querySelectorAll('.overlay-frame img[id^="overlay-filter"]');
+
+        filterCircles.forEach(circle => {
+            circle.addEventListener('click', () => {
+                // Remove active from all circles
+                filterCircles.forEach(c => c.classList.remove('active'));
+                circle.classList.add('active');
+                // Animate overlay swap
+                overlayImages.forEach(img => {
+                    img.classList.remove('active');
+                });
+                const filterName = circle.getAttribute('data-filter');
+                const overlay = document.getElementById('overlay-' + filterName);
+                // Add swap animation
+                overlay.style.opacity = 0;
+                overlay.classList.add('active');
+                setTimeout(() => {
+                    overlay.style.opacity = 1;
+                }, 50);
+            });
+        });
     </script>
 </body>
 </html>
